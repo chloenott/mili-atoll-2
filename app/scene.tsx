@@ -4,7 +4,7 @@ import { PerspectiveCamera, useTexture } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber';
 import { create } from 'domain';
 import { useEffect, useRef, useState } from 'react';
-import { Mesh, MeshBasicMaterial, Object3D, Matrix4, InstancedMesh, PlaneGeometry } from 'three'
+import { Mesh, MeshBasicMaterial, Object3D, Matrix4, InstancedMesh, PlaneGeometry, Vector3 } from 'three'
 import { randFloat } from 'three/src/math/MathUtils.js';
 
 type MeshWithStandardMaterial = Mesh<THREE.PlaneGeometry, MeshBasicMaterial>;
@@ -15,6 +15,7 @@ export function Scene() {
   const birdsGroup = new Object3D();
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const cameraRef = useRef<MeshWithStandardMaterial>(null)
+  const cameraPositionTarget = useRef<THREE.Vector3>(new Vector3(0,0,5))
   const satelliteImagesRef = useRef<THREE.Group>(null)
   const scene = useThree((state) => state.scene);
   const satelliteTextures = useTexture([
@@ -44,42 +45,45 @@ export function Scene() {
     birdsGroup.rotateZ(0);
     scene.add(birdsGroup);
 
-    const imageChangeInterval = setInterval(() => {
-      setCurrentImageIndex((currentImageIndex + 1) % satelliteTextures.length)
-    }, 5000)
-
     const handleMouseMove = (e: { clientX: number; clientY: number; }) => {
       const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
       const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
       const camera = cameraRef.current;
       if (camera) {
+        cameraPositionTarget.current = new Vector3(mouseY * 0.2, -mouseX * 0.5, 5+(-mouseY)*0.5);
         camera.rotation.y = -mouseY * 0.05;
         camera.rotation.x = -mouseX * 0.02;
-        camera.position.y = -mouseX * 0.5;
-        camera.position.x = mouseY * 0.2;
-        camera.position.z = 5+(-mouseY)*0.5;
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => {
-      clearInterval(imageChangeInterval)
       scene.remove(birdsGroup)
       window.removeEventListener('mousemove', handleMouseMove);
     }
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [birdTexture])
 
   useEffect(() => {
-    if (satelliteImagesRef.current) {
-      satelliteImagesRef.current.position.x = 0;
+    const imageChangeTimeout = setTimeout(() => {
+      setCurrentImageIndex((currentImageIndex + 1) % satelliteTextures.length)
+      if (satelliteImagesRef.current) {
+        satelliteImagesRef.current.position.x = 0;
+      }
+    }, 5000)
+    return () => {
+      clearInterval(imageChangeTimeout)
     }
-  }, [currentImageIndex]);
+  })
 
   useFrame((state, delta) => {
     if (satelliteImagesRef && satelliteImagesRef.current && satelliteImagesRef.current.position) {
       satelliteImagesRef.current.position.x -= delta*1
     }
     birdsGroup.position.z = 0.02*Math.sin(state.clock.elapsedTime/2);
+    if (cameraRef.current) {
+      cameraRef.current.position.lerp(cameraPositionTarget.current, delta);
+    }
   })
 
   return (
