@@ -14,7 +14,7 @@ export function Scene() {
   const numberOfBirds = 500;
   const birdsGroup = new Object3D();
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const imageMesh = useRef<MeshWithStandardMaterial>(null)
+  const cameraRef = useRef<MeshWithStandardMaterial>(null)
   const satelliteImagesRef = useRef<THREE.Group>(null)
   const scene = useThree((state) => state.scene);
   const satelliteTextures = useTexture([
@@ -47,9 +47,25 @@ export function Scene() {
     const imageChangeInterval = setInterval(() => {
       setCurrentImageIndex((currentImageIndex + 1) % satelliteTextures.length)
     }, 5000)
+
+    const handleMouseMove = (e: { clientX: number; clientY: number; }) => {
+      const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+      const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+      const camera = cameraRef.current;
+      if (camera) {
+        camera.rotation.y = mouseX * 0.005;
+        camera.rotation.x = -mouseY * 0.005;
+        camera.position.y = mouseY * 0.1;
+        camera.position.x = mouseX * 0.1;
+        camera.position.z = 5+(-mouseX-mouseY)*0.05;
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
     return () => {
       clearInterval(imageChangeInterval)
       scene.remove(birdsGroup)
+      window.removeEventListener('mousemove', handleMouseMove);
     }
   })
 
@@ -68,7 +84,7 @@ export function Scene() {
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={120} />
+      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 5]} fov={120} />
       <group ref={satelliteImagesRef}>
         <mesh visible={currentImageIndex == 0 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
