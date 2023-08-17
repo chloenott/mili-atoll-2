@@ -37,8 +37,6 @@ export function Scene() {
 
   return (
     <>
-      <ambientLight />
-      <pointLight position={[10, 10, 10]} />
       <mesh ref={globeRef} visible={videoLoaded}>
         <sphereGeometry args={[1, 64, 64]} />
         <meshBasicMaterial />
