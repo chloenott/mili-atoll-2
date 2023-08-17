@@ -31,13 +31,13 @@ export function Scene() {
   useEffect(() => {
     const matrix = new Matrix4();
     const birdMaterial = new MeshBasicMaterial({map: birdTexture, transparent: true, depthWrite: false});
-    const mesh = new InstancedMesh(new PlaneGeometry(0.1, 0.1, 2, 2), birdMaterial, numberOfBirds);
+    const mesh = new InstancedMesh(new PlaneGeometry(0.2, 0.2, 2, 2), birdMaterial, numberOfBirds);
     for (let i = 0; i < 2; i++) {
       matrix.setPosition(-0.1+i/10, 0.0-i/10, 4.7+i/10);
       mesh.setMatrixAt(i, matrix);
     }
     for (let i = 2; i < numberOfBirds; i++) {
-      matrix.setPosition(randFloat(-5,5), randFloat(-5,5), 1+3*i/numberOfBirds);
+      matrix.setPosition(randFloat(-10,10), randFloat(-10,10), -2+5*i/numberOfBirds);
       mesh.setMatrixAt(i, matrix);
     }
     mesh.rotateZ(-Math.PI/2);
