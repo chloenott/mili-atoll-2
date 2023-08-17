@@ -1,34 +1,34 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Incomplete.
 
-## Getting Started
+Version 1 was a technical disaster overrun by experimental spaghetti, mysterious rerenderings, and more garbage collection than the python last script I made. But we will not give up. We will move on. We will surive.
 
-First, run the development server:
+Version 2. The vision. The requirements. A note to me, myselves of the future, and all parallel me's thereafter. It will begin now.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+Structure
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [ ] One canvas per page. One page per topic.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Title page
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+- [ ] Canvas. 5 satellite texture pairs (watercolor, photo). Camera slow pan, replace texture after interval. 500 birds with shared watercolor, photo texture pairs. Dream reality.
+- [ ] Button to go to navigation page.
 
-## Learn More
+Ocean page
 
-To learn more about Next.js, take a look at the following resources:
+- [ ] Lost. 1st person. Crosshatch waves. Distant marker. Birds to shore.
+- [ ] Wind waves, significant wave height video textures onto sphere. Single channel with shader color gradient. Black marble composite, wc/p pair.
+- [ ] Regional waves, wave spectra video. Refraction, reflection diagram.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Videos page
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- [ ] Mobile version. List of watercolor images. Click to play. Edge fade.
+- [ ] Desktop version. Watercolor carousel. Autoplay after delay.
 
-## Deploy on Vercel
+Info page
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [ ] Atoll map view, all islands labelled. One label clicks to fall into Mili island view.
+- [ ] Mili view contains at least 5 miscellaneous labels and one image per label. At least two labels are camera aligned transition to WWII view, back to satellite, back to watercolor map.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Navigation page
+
+- [ ] Seashell icon to open. 3D stick chart. Controls to orbit to next/previous option. Boids fish in sky.
