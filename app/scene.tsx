@@ -10,7 +10,7 @@ import { randFloat } from 'three/src/math/MathUtils.js';
 type MeshWithStandardMaterial = Mesh<THREE.PlaneGeometry, MeshBasicMaterial>;
 
 export function Scene() {
-  const imageScale = 20;
+  const imageScale = 70;
   const numberOfBirds = 500;
   const birdsGroup = new Object3D();
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -32,11 +32,11 @@ export function Scene() {
     const birdMaterial = new MeshBasicMaterial({map: birdTexture, transparent: true, depthWrite: false});
     const mesh = new InstancedMesh(new PlaneGeometry(0.1, 0.1, 2, 2), birdMaterial, numberOfBirds);
     for (let i = 0; i < 2; i++) {
-      matrix.setPosition(-0.1+i/10, -0.1-i/10, 4.7+i/10);
+      matrix.setPosition(-0.1+i/10, 0.0-i/10, 4.7+i/10);
       mesh.setMatrixAt(i, matrix);
     }
     for (let i = 2; i < numberOfBirds; i++) {
-      matrix.setPosition(randFloat(-7,7), randFloat(-7,7), 2+1*i/numberOfBirds);
+      matrix.setPosition(randFloat(-5,5), randFloat(-5,5), 1+3*i/numberOfBirds);
       mesh.setMatrixAt(i, matrix);
     }
     mesh.rotateZ(-Math.PI/2);
@@ -53,11 +53,11 @@ export function Scene() {
       const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
       const camera = cameraRef.current;
       if (camera) {
-        camera.rotation.y = mouseX * 0.005;
-        camera.rotation.x = -mouseY * 0.005;
-        camera.position.y = mouseY * 0.1;
-        camera.position.x = mouseX * 0.1;
-        camera.position.z = 5+(-mouseX-mouseY)*0.05;
+        camera.rotation.y = -mouseY * 0.05;
+        camera.rotation.x = -mouseX * 0.02;
+        camera.position.y = -mouseX * 0.5;
+        camera.position.x = mouseY * 0.2;
+        camera.position.z = 5+(-mouseY)*0.5;
       }
     };
 
@@ -77,15 +77,15 @@ export function Scene() {
 
   useFrame((state, delta) => {
     if (satelliteImagesRef && satelliteImagesRef.current && satelliteImagesRef.current.position) {
-      satelliteImagesRef.current.position.x -= delta*0.1
+      satelliteImagesRef.current.position.x -= delta*1
     }
     birdsGroup.position.z = 0.02*Math.sin(state.clock.elapsedTime/2);
   })
 
   return (
     <>
-      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 5]} fov={120} />
-      <group ref={satelliteImagesRef}>
+      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 5]} fov={120} near={0.001} rotation={[0,0,-Math.PI/2]} />
+      <group ref={satelliteImagesRef} position={[0, 0, -10]} rotation={[0,0,-Math.PI/2]}>
         <mesh visible={currentImageIndex == 0 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
           <meshBasicMaterial map={satelliteTextures[0]} />
