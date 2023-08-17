@@ -8,7 +8,7 @@ type MeshWithStandardMaterial = Mesh<THREE.SphereGeometry, MeshStandardMaterial>
 
 export function Scene() {
   const globeRef = useRef<MeshWithStandardMaterial>(null)
-  const [videoLoaded, setVideoLoaded] = useState(false) // Add a loading state
+  const [videoLoaded, setVideoLoaded] = useState(false)
 
   useFrame((state, delta) => {
     if (globeRef && globeRef.current && globeRef.current.rotation) 
@@ -29,10 +29,11 @@ export function Scene() {
         globeRef.current.material.map = videoTexture
         globeRef.current.material.needsUpdate = true
         setVideoLoaded(true)
+      } else {
+        console.log('globeRef is not ready')
       }
     }
   }, [])
-
 
   return (
     <>
@@ -40,7 +41,7 @@ export function Scene() {
       <pointLight position={[10, 10, 10]} />
       <mesh ref={globeRef} visible={videoLoaded}>
         <sphereGeometry args={[1, 64, 64]} />
-        <meshStandardMaterial />
+        <meshBasicMaterial />
       </mesh>
     </>
   );

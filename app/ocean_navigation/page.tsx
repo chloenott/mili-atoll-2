@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import R3fCanvas from './R3fCanvas'
+import R3fCanvas from './r3f_canvas'
 
 export default function OceanNavigation() {
   return (
