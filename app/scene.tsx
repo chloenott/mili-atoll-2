@@ -1,6 +1,6 @@
 'use client'
 
-import { PerspectiveCamera, useTexture } from '@react-three/drei'
+import { CameraShake, PerspectiveCamera, useTexture } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { Mesh, MeshBasicMaterial, Object3D, Matrix4, InstancedMesh, PlaneGeometry, Vector3 } from 'three'
@@ -9,7 +9,7 @@ import { randFloat } from 'three/src/math/MathUtils.js';
 type MeshWithStandardMaterial = Mesh<THREE.PlaneGeometry, MeshBasicMaterial>;
 
 export function Scene() {
-  const imageScale = 70;
+  const imageScale = 80;
   const numberOfBirds = 500;
   const birdsGroup = new Object3D();
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -36,7 +36,7 @@ export function Scene() {
       mesh.setMatrixAt(i, matrix);
     }
     for (let i = 2; i < numberOfBirds; i++) {
-      matrix.setPosition(randFloat(-10,10), randFloat(-10,10), -2+5*i/numberOfBirds);
+      matrix.setPosition(randFloat(-5,5)*((1-i/numberOfBirds)*5+1), randFloat(-5,5)*((1-i/numberOfBirds)*5+1), -5+9*i/numberOfBirds);
       mesh.setMatrixAt(i, matrix);
     }
     mesh.rotateZ(-Math.PI/2);
@@ -49,9 +49,9 @@ export function Scene() {
       const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
       const camera = cameraRef.current;
       if (camera) {
-        cameraPositionTarget.current = new Vector3(mouseY * 0.2, -mouseX * 0.5, 5+(-mouseY)*0.5);
+        cameraPositionTarget.current = new Vector3(mouseY * 0.9, -mouseX * 0.9, 5+(-mouseY)*0.5);
         camera.rotation.y = -mouseY * 0.05;
-        camera.rotation.x = -mouseX * 0.02;
+        camera.rotation.x = -mouseX * 0.05;
       }
     };
 

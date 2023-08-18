@@ -1,11 +1,11 @@
 'use client'
 
-import { OrbitControls, PerspectiveCamera, Sparkles, useTexture } from '@react-three/drei';
+import { DeviceOrientationControls, OrbitControls, PerspectiveCamera, Sparkles, Torus, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber'
-import { Bloom, EffectComposer } from '@react-three/postprocessing';
+import { Bloom, Depth, DepthOfField, EffectComposer } from '@react-three/postprocessing';
 import { Orbit } from 'next/font/google';
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { VideoTexture, Mesh, MeshStandardMaterial, Texture, LuminanceFormat, RedFormat, NearestFilter, NearestMipMapNearestFilter, NearestMipMapLinearFilter, LinearFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, DoubleSide, FrontSide, AmbientLight } from 'three'
+import { VideoTexture, Mesh, MeshStandardMaterial, Texture, LuminanceFormat, RedFormat, NearestFilter, NearestMipMapNearestFilter, NearestMipMapLinearFilter, LinearFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, DoubleSide, FrontSide, AmbientLight, Fog } from 'three'
 
 type MeshWithStandardMaterial = Mesh<THREE.SphereGeometry, MeshStandardMaterial>;
 
@@ -147,9 +147,9 @@ export function Scene() {
         <sphereGeometry args={[1.21, 128, 128]} />
         <shaderMaterial  {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>
-      <Sparkles color={0xbbbbff} count={200} speed={0.2} size={5} scale={10} />
-      <Sparkles color={0xbbccff} count={50} speed={0.2} size={10} scale={5} />
-      <Sparkles color={0x00ffbb} count={20} speed={0.2} size={20} scale={4} />
+      <Sparkles color={0xbbbbff} count={100} speed={0.2} size={5} scale={6} />
+      <Sparkles color={0xbbccff} count={50} speed={0.4} size={10} scale={3.5} rotation={[Math.PI/4,Math.PI/4,0]} />
+      <Sparkles color={0x00ffbb} count={20} speed={0.5} size={20} scale={3} rotation={[Math.PI/4,0,0]} />
     </>
   );
 }
