@@ -1,8 +1,9 @@
 'use client'
 
-import { PerspectiveCamera, useTexture } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Sparkles, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber'
 import { Bloom, EffectComposer } from '@react-three/postprocessing';
+import { Orbit } from 'next/font/google';
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { VideoTexture, Mesh, MeshStandardMaterial, Texture, LuminanceFormat, RedFormat, NearestFilter, NearestMipMapNearestFilter, NearestMipMapLinearFilter, LinearFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, DoubleSide, FrontSide, AmbientLight } from 'three'
 
@@ -137,6 +138,7 @@ export function Scene() {
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={15.0} />
+      <OrbitControls enableZoom={false} />
       <mesh ref={globeRef} visible={videoLoaded}>
         <sphereGeometry args={[1, 512, 512]} />
         <shaderMaterial  {...shaderData} side={FrontSide} />
@@ -145,6 +147,9 @@ export function Scene() {
         <sphereGeometry args={[1.21, 128, 128]} />
         <shaderMaterial  {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>
+      <Sparkles color={0xbbbbff} count={200} speed={0.2} size={5} scale={10} />
+      <Sparkles color={0xbbccff} count={50} speed={0.2} size={10} scale={5} />
+      <Sparkles color={0x00ffbb} count={20} speed={0.2} size={20} scale={4} />
     </>
   );
 }
