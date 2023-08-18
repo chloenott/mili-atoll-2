@@ -1,10 +1,10 @@
 'use client'
 
-import { useTexture } from '@react-three/drei';
-import { ThreeElements, useFrame } from '@react-three/fiber'
-import { format } from 'path';
+import { PerspectiveCamera, useTexture } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber'
+import { Bloom, EffectComposer } from '@react-three/postprocessing';
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { VideoTexture, Mesh, MeshStandardMaterial, Texture, LuminanceFormat, RedFormat, NearestFilter, NearestMipMapNearestFilter, NearestMipMapLinearFilter, LinearFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter } from 'three'
+import { VideoTexture, Mesh, MeshStandardMaterial, Texture, LuminanceFormat, RedFormat, NearestFilter, NearestMipMapNearestFilter, NearestMipMapLinearFilter, LinearFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, DoubleSide, FrontSide, AmbientLight } from 'three'
 
 type MeshWithStandardMaterial = Mesh<THREE.SphereGeometry, MeshStandardMaterial>;
 
@@ -14,45 +14,65 @@ const vertexShaderSwells = `
   varying vec2 vUv;
   varying float vIntensity;
   varying vec3 vSwell_color;
+
+  float getFresnelIntensity() {
+    float power = 10.0;
+    vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+    vec3 transformedNormal = normalize(normalMatrix * normal);
+    return pow(1.0 + dot(viewDirection, transformedNormal), power);
+  }
   
   void main() {
     vUv = uv;
-    vIntensity = texture2D(swellIntensity, vUv).r;
-    vSwell_color = texture2D(colorGradient, vec2(max(vIntensity,0.05), 0.5)).rgb;
-    float modulationFactor = vIntensity * 0.3;
+    vIntensity = max(texture2D(swellIntensity, vUv).r, 0.05);
+    vec3 fresnelLight = getFresnelIntensity()*vec3(0.2,0.5,0.8);
+    vSwell_color = 10.*fresnelLight + texture2D(colorGradient, vec2(-0.05+1.1*vIntensity, 0.5)).rgb;
+    float modulationFactor = 0.17 + vIntensity*0.3;
+    modulationFactor = vIntensity < 0.07 ? 0.2 : modulationFactor;
     vec3 newPosition = position + normal * modulationFactor;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   }
 `
 
 const fragmentShaderSwells = `
-  uniform sampler2D colorGradient;
   varying float vIntensity;
   varying vec3 vSwell_color;
   varying vec2 vUv;
 
   void main() {
-    gl_FragColor = vec4(vSwell_color, 1.);
+    gl_FragColor = vec4(vSwell_color, vIntensity);
   }
 `
 
 const vertexShaderLand = `
   varying vec2 vUv;
+  varying vec3 fresnelLight;
+
+  float getFresnelIntensity() {
+    float power = 2.0;
+    vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+    vec3 transformedNormal = normalize(normalMatrix * normal);
+    return pow(1.0 + dot(viewDirection, transformedNormal), power);
+  }
 
   void main() {
     vUv = uv;
+    fresnelLight = getFresnelIntensity()*vec3(0.2,0.5,0.8);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `
 
 const fragmentShaderLand = `
+  uniform sampler2D colorGradient;
   uniform sampler2D blackMarble;
   varying vec2 vUv;
+  varying vec3 fresnelLight;
 
   void main() {
     float intensity = texture2D(blackMarble, vUv).r;
-    vec3 black_marble_color = vec3(1.,1.,1.);//intensity * vec3(0.8, 0.9, 1.0);
-    gl_FragColor = vec4(black_marble_color, intensity > 0.9 ? 1. : intensity);
+    vec3 black_marble_color = texture2D(colorGradient, vec2(intensity, 0.5)).rgb;
+    vec3 total_color = 2.*fresnelLight + black_marble_color;
+    gl_FragColor = vec4(total_color, intensity > 0.02 ? 1. : intensity);
   }
 `
 
@@ -73,15 +93,17 @@ export function Scene() {
     },
     fragmentShader: fragmentShaderSwells,
     vertexShader: vertexShaderSwells,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [colorGradient])
 
   const landShaderData = useMemo(() => ({
     uniforms: {
       blackMarble: { value: blackMarble },
+      colorGradient: { value: colorGradient },
     },
     fragmentShader: fragmentShaderLand,
     vertexShader: vertexShaderLand,
-  }), [blackMarble])
+  }), [blackMarble, colorGradient])
 
   useFrame((state, delta) => {
     if (globeRef && globeRef.current && globeRef.current.rotation && landRef && landRef.current && landRef.current.rotation) {
@@ -97,6 +119,7 @@ export function Scene() {
     vid.loop = true
     vid.muted = true
     vid.playsInline = true
+    vid.playbackRate = 1.0
     vid.onloadeddata = () => {
       vid.play()
       const videoTexture = new VideoTexture(vid)
@@ -108,17 +131,19 @@ export function Scene() {
         console.log('globeRef is not ready')
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <>
+      <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={15.0} />
       <mesh ref={globeRef} visible={videoLoaded}>
-        <sphereGeometry args={[2, 256, 256]} />
-        <shaderMaterial  {...shaderData} />
+        <sphereGeometry args={[1, 512, 512]} />
+        <shaderMaterial  {...shaderData} side={FrontSide} />
       </mesh>
       <mesh ref={landRef}>
-        <sphereGeometry args={[2.05, 128, 128]} />
-        <shaderMaterial  {...landShaderData} transparent={true} />
+        <sphereGeometry args={[1.21, 128, 128]} />
+        <shaderMaterial  {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>
     </>
   );
