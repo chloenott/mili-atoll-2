@@ -108,9 +108,9 @@ export function Scene() {
 
   useFrame((state, delta) => {
     if (globeRef && globeRef.current && globeRef.current.rotation && landRef && landRef.current && landRef.current.rotation) {
-        globeRef.current.rotation.y += delta*0.1
-        landRef.current.rotation.y += delta*0.1
-      }
+      globeRef.current.rotation.y += delta*0.1
+      landRef.current.rotation.y += delta*0.1
+    }
   })
 
   useEffect(() => {
@@ -140,7 +140,7 @@ export function Scene() {
       <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={15.0} />
       <OrbitControls enableZoom={false} />
       <mesh ref={globeRef} visible={videoLoaded}>
-        <sphereGeometry args={[1, 512, 512]} />
+        <sphereGeometry args={[1, 256, 256]} />
         <shaderMaterial  {...shaderData} side={FrontSide} />
       </mesh>
       <mesh ref={landRef}>
