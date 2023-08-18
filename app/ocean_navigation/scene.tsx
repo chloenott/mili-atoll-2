@@ -1,5 +1,6 @@
 'use client'
 
+import { useTexture } from '@react-three/drei';
 import { ThreeElements, useFrame } from '@react-three/fiber'
 import { format } from 'path';
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -17,10 +18,12 @@ const vertexShader = `
 
 const fragmentShader = `
   uniform sampler2D swellIntensity;
+  uniform sampler2D colorGradient;
   varying vec2 vUv;
+
   void main() {
     float intensity = texture2D(swellIntensity, vUv).r;
-    vec3 color = intensity * vec3(1.,1.,1.);
+    vec3 color = texture2D(colorGradient, vec2(intensity, 0.5)).rgb;
     gl_FragColor = vec4(color, 1.);
   }
 `
@@ -29,15 +32,17 @@ export function Scene() {
   const globeRef = useRef<MeshWithStandardMaterial>(null)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const initTexture = new Texture()
-  initTexture.format = RedFormat
+  const birdTexture = useTexture('/images/color_gradient.png')
 
   const shaderData = useMemo(() => ({
     uniforms: {
       swellIntensity: { value: initTexture },
+      colorGradient: { value: birdTexture },
     },
     fragmentShader,
     vertexShader,
   }), [])
+
 
   useFrame((state, delta) => {
     if (globeRef && globeRef.current && globeRef.current.rotation) 
