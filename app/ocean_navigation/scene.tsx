@@ -148,9 +148,9 @@ export function Scene() {
         <sphereGeometry args={[1.21, 128, 128]} />
         <shaderMaterial  {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>
-      <Sparkles color={0xbbbbff} count={100} speed={0.2} size={5} scale={6} />
+      {/* <Sparkles color={0xbbbbff} count={100} speed={0.2} size={5} scale={6} />
       <Sparkles color={0xbbccff} count={50} speed={0.4} size={10} scale={3.5} rotation={[Math.PI/4,Math.PI/4,0]} />
-      <Sparkles color={0x00ffbb} count={20} speed={0.5} size={20} scale={3} rotation={[Math.PI/4,0,0]} />
+      <Sparkles color={0x00ffbb} count={20} speed={0.5} size={20} scale={3} rotation={[Math.PI/4,0,0]} /> */}
       <PostProcess />
     </>
   );

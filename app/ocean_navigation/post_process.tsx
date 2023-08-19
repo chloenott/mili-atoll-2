@@ -1,6 +1,7 @@
 import { useTexture } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { BufferGeometry, Float32BufferAttribute, Mesh, PlaneGeometry, ShaderMaterial, Uniform, WebGLRenderTarget } from "three";
+import { BufferGeometry, ClampToEdgeWrapping, Float32BufferAttribute, LinearFilter, Mesh, NearestFilter, PlaneGeometry, RepeatWrapping, ShaderMaterial, Uniform, WebGLRenderTarget, WrapAroundEnding } from "three";
+import OceanNavigation from "./page";
 
 const vertexShader = ` 
   varying vec2 vUv;
@@ -13,7 +14,7 @@ const vertexShader = `
 const fragmentShader = `
   uniform sampler2D lowResScreen;
   uniform sampler2D highResScreen;
-  uniform sampler2D lowResOc1; // this needs to be in the same resolution as lowResScreen
+  uniform sampler2D lowResOc1;
   uniform sampler2D wc1;
   varying vec2 vUv;
 
@@ -22,7 +23,7 @@ const fragmentShader = `
     vec2 dy = vec2(0.0, step);
     float gradient_x = texture2D(inputTexture, uv + dx).b - texture2D(inputTexture, uv - dx).b;
     float gradient_y = texture2D(inputTexture, uv + dy).b - texture2D(inputTexture, uv - dy).b;
-    float gradient_z = 2.*texture2D(inputTexture, uv).b;
+    float gradient_z = 1.*texture2D(inputTexture, uv).b;
     return vec3(gradient_x, gradient_y, gradient_z);
   }
 
@@ -31,16 +32,17 @@ const fragmentShader = `
   }
 
   void main() {
-    vec3 currentPixelGradient = gradient(lowResScreen, vUv, 0.01);
-    float searchRadiusIncrements = 0.1;
+    float kernelSize = 0.02;
+    vec3 currentPixelGradient = gradient(lowResScreen, vUv, kernelSize);
+    float searchRadiusIncrements = 0.02;
 
-    float bestScore = 1.;
+    float bestScore = 10000.;
     vec2 bestScoreUv = vUv;
-    for (float i = -2.; i < 3.; i++) {
-      for (float j = -2.; j < 3.; j++) {
-        vec2 uv2 = vUv + vec2(i*searchRadiusIncrements, j*searchRadiusIncrements);
-        vec3 oc1_gradient = gradient(lowResOc1, uv2, 0.01);
-        float score_LowerIsBetter = abs(length(oc1_gradient - currentPixelGradient));
+    for (float i = -3.; i < 4.; i++) {
+      for (float j = -3.; j < 4.; j++) {
+        vec2 uv2 = clamp(vUv + vec2(i*searchRadiusIncrements, j*searchRadiusIncrements), 0., 1.);
+        vec3 oc1_gradient = gradient(lowResOc1, uv2, kernelSize);
+        float score_LowerIsBetter = abs(oc1_gradient.x-currentPixelGradient.x) + abs(oc1_gradient.y-currentPixelGradient.y) + abs(oc1_gradient.z-currentPixelGradient.z);
         if (score_LowerIsBetter < bestScore) {
           bestScore = score_LowerIsBetter;
           bestScoreUv = uv2;
@@ -48,7 +50,10 @@ const fragmentShader = `
       }
     }
     
-    gl_FragColor = screenBlend(texture2D(highResScreen, vUv), texture2D(wc1, bestScoreUv));
+    gl_FragColor = screenBlend(0.5*texture2D(highResScreen, vUv), texture2D(wc1, bestScoreUv));
+    //gl_FragColor = texture2D(wc1, bestScoreUv);
+    //gl_FragColor = texture2D(lowResOc1, vUv);
+
   }
 `
 
@@ -61,7 +66,7 @@ const vertexShaderLowResOc1 = `
 `
 
 const fragmentShaderLowResOc1 = `
-  uniform sampler2D oc1; // this needs to be in the same resolution as lowResScreen
+  uniform sampler2D oc1;
   varying vec2 vUv;
 
   void main() {
@@ -72,6 +77,7 @@ const fragmentShaderLowResOc1 = `
 export function PostProcess() {
   const { gl, size } = useThree();
 
+  const aspectRatio = size.width / size.height;
   const oc1 = useTexture('/images/oc1.jpg')
   const wc1 = useTexture('/images/wc1.jpg')
 
@@ -88,6 +94,7 @@ export function PostProcess() {
   });
   const mesh = new Mesh(geometry, material);
 
+  const lowResOcGeometry = new PlaneGeometry(size.width/250, size.height/250);
   const lowResOcMaterial = new ShaderMaterial({
     uniforms: {
       oc1: new Uniform(oc1),
@@ -95,25 +102,30 @@ export function PostProcess() {
     vertexShader: vertexShaderLowResOc1,
     fragmentShader: fragmentShaderLowResOc1,
   });
-  const lowResOcGeometry = new PlaneGeometry(size.width/250, size.height/250);
   const lowResOcMesh = new Mesh(lowResOcGeometry, lowResOcMaterial);
 
-  const lowResScreenRenderTarget = new WebGLRenderTarget(100, 100);
-  const lowResOC1RenderTarget = new WebGLRenderTarget(100, 100);
+  const lowResScreenRenderTarget = new WebGLRenderTarget(50, 50);
+  lowResScreenRenderTarget.texture.minFilter = NearestFilter;
+  lowResScreenRenderTarget.texture.magFilter = NearestFilter;
+  lowResScreenRenderTarget.texture.generateMipmaps = false;
+  const lowResOC1RenderTarget = new WebGLRenderTarget(50, 50);
+  lowResOC1RenderTarget.texture.minFilter = NearestFilter;
+  lowResOC1RenderTarget.texture.magFilter = NearestFilter;
+  lowResScreenRenderTarget.texture.generateMipmaps = false;
   const highResScreenRenderTarget = new WebGLRenderTarget(size.width, size.height);
 
   useFrame(({gl, scene, camera}) => {
-    gl.setRenderTarget(lowResScreenRenderTarget);
+    gl.setRenderTarget(highResScreenRenderTarget);
     gl.render(scene, camera);
-    material.uniforms.lowResScreen.value = lowResScreenRenderTarget.texture;
+    material.uniforms.highResScreen.value = highResScreenRenderTarget.texture;
 
     gl.setRenderTarget(lowResOC1RenderTarget);
     gl.render(lowResOcMesh, camera);
     material.uniforms.lowResOc1.value = lowResOC1RenderTarget.texture;
 
-    gl.setRenderTarget(highResScreenRenderTarget);
+    gl.setRenderTarget(lowResScreenRenderTarget);
     gl.render(scene, camera);
-    material.uniforms.highResScreen.value = highResScreenRenderTarget.texture;
+    material.uniforms.lowResScreen.value = lowResScreenRenderTarget.texture;
 
     gl.setRenderTarget(null);
     gl.render(mesh, camera);
