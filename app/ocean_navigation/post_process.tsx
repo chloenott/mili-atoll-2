@@ -15,10 +15,28 @@ const fragmentShader = `
   uniform sampler2D highResScreen;
   uniform sampler2D wc1;
   varying vec2 vUv;
+
+  vec2 gradient(sampler2D inputTexture, vec2 uv) {
+    float step = 0.01;
+    vec2 dx = vec2(step, 0.0);
+    vec2 dy = vec2(0.0, step);
+    float gradient_x = texture2D(inputTexture, uv + dx).b - texture2D(inputTexture, uv - dx).b;
+    float gradient_y = texture2D(inputTexture, uv + dy).b - texture2D(inputTexture, uv - dy).b;
+    return vec2(gradient_x, gradient_y);
+  }
+
   void main() {
-    vec4 color = texture2D(wc1, vUv);
-    color += texture2D(lowResScreen, vUv);
-    gl_FragColor = color;
+    vec2 currentPixelGradient = gradient(lowResScreen, vUv);
+
+    for (float i = -2.; i < 3.; i++) {
+      for (float j = -2.; j < 3.; j++) {
+        vec2 uv = vUv + vec2(i/25., j/25.);
+        vec2 wc1_gradient = gradient(wc1, uv);
+        float weight = 1. - length(wc1_gradient - currentPixelGradient);
+        gl_FragColor += texture2D(wc1, uv) * weight;
+
+      }
+    }
   }
 `
 
