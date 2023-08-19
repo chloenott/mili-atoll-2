@@ -121,7 +121,7 @@ export function Scene() {
     vid.loop = true
     vid.muted = true
     vid.playsInline = true
-    vid.playbackRate = 1.0
+    vid.playbackRate = 1
     vid.onloadeddata = () => {
       vid.play()
       const videoTexture = new VideoTexture(vid)
@@ -141,7 +141,7 @@ export function Scene() {
       <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={15.0} />
       <OrbitControls enableZoom={false} />
       <mesh ref={globeRef} visible={videoLoaded}>
-        <sphereGeometry args={[1, 256, 256]} />
+        <sphereGeometry args={[1, 512, 512]} />
         <shaderMaterial  {...shaderData} side={FrontSide} />
       </mesh>
       <mesh ref={landRef}>
