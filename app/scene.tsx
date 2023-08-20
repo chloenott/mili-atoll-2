@@ -31,13 +31,13 @@ export function Scene() {
     const matrix = new Matrix4();
     const birdMaterial = new MeshBasicMaterial({map: birdTexture, transparent: true, depthWrite: false});
     const mesh = new InstancedMesh(new PlaneGeometry(0.2, 0.2, 2, 2), birdMaterial, numberOfBirds);
-    for (let i = 0; i < 2; i++) {
-      matrix.setPosition(-0.1+i/10, 0.0-i/10, 4.7+i/10);
-      mesh.setMatrixAt(i, matrix);
-    }
-    for (let i = 2; i < numberOfBirds; i++) {
+    for (let i = 0; i < numberOfBirds-2; i++) {
       matrix.setPosition(randFloat(-5,5)*((1-i/numberOfBirds)*5+1), randFloat(-5,5)*((1-i/numberOfBirds)*5+1), -5+9*i/numberOfBirds);
       mesh.setMatrixAt(i, matrix);
+    }
+    for (let i = 0; i < 2; i++) {
+      matrix.setPosition(-0.1+i/10, 0.0-i/10, 4.7+i/10);
+      mesh.setMatrixAt(i+numberOfBirds-2, matrix);
     }
     mesh.rotateZ(-Math.PI/2);
     birdsGroup.add(mesh);
@@ -50,8 +50,8 @@ export function Scene() {
       const camera = cameraRef.current;
       if (camera) {
         cameraPositionTarget.current = new Vector3(mouseY * 0.9, -mouseX * 0.9, 5+(-mouseY)*0.5);
-        camera.rotation.y = -mouseY * 0.05;
-        camera.rotation.x = -mouseX * 0.05;
+        camera.rotation.y = -mouseY * 0.02;
+        camera.rotation.x = -mouseX * 0.02;
       }
     };
 
@@ -81,7 +81,7 @@ export function Scene() {
     }
     birdsGroup.position.z = 0.02*Math.sin(state.clock.elapsedTime/2);
     if (cameraRef.current) {
-      cameraRef.current.position.lerp(cameraPositionTarget.current, delta);
+      cameraRef.current.position.lerp(cameraPositionTarget.current, delta/5);
     }
   })
 

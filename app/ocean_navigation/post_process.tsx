@@ -23,12 +23,16 @@ const fragmentShader = `
     vec2 dy = vec2(0.0, step);
     float gradient_x = texture2D(inputTexture, uv + dx).b - texture2D(inputTexture, uv - dx).b;
     float gradient_y = texture2D(inputTexture, uv + dy).b - texture2D(inputTexture, uv - dy).b;
-    float gradient_z = 1.*texture2D(inputTexture, uv).b;
+    float gradient_z = 20.*texture2D(inputTexture, uv).b;
     return vec3(gradient_x, gradient_y, gradient_z);
   }
 
   vec4 screenBlend(vec4 base, vec4 blend) {
     return 1.0 - (1.0 - blend) * (1.0 - base);
+  }
+
+  float rand(vec2 co) {
+    return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453);
   }
 
   void main() {
@@ -38,11 +42,12 @@ const fragmentShader = `
 
     float bestScore = 10000.;
     vec2 bestScoreUv = vUv;
-    for (float i = -3.; i < 4.; i++) {
-      for (float j = -3.; j < 4.; j++) {
-        vec2 uv2 = clamp(vUv + vec2(i*searchRadiusIncrements, j*searchRadiusIncrements), 0., 1.);
+    for (float i = -2.; i < 3.; i++) {
+      for (float j = -2.; j < 3.; j++) {
+        vec2 uvOffset = vec2(i*searchRadiusIncrements, j*searchRadiusIncrements);
+        vec2 uv2 = clamp(vUv + uvOffset, 0., 1.);
         vec3 oc1_gradient = gradient(lowResOc1, uv2, kernelSize);
-        float score_LowerIsBetter = abs(oc1_gradient.x-currentPixelGradient.x) + abs(oc1_gradient.y-currentPixelGradient.y) + abs(oc1_gradient.z-currentPixelGradient.z);
+        float score_LowerIsBetter = (abs(oc1_gradient.x-currentPixelGradient.x) + abs(oc1_gradient.y-currentPixelGradient.y) + abs(oc1_gradient.z-currentPixelGradient.z))/3.;
         if (score_LowerIsBetter < bestScore) {
           bestScore = score_LowerIsBetter;
           bestScoreUv = uv2;
@@ -50,9 +55,10 @@ const fragmentShader = `
       }
     }
     
-    gl_FragColor = screenBlend(0.5*texture2D(highResScreen, vUv), texture2D(wc1, bestScoreUv));
-    //gl_FragColor = texture2D(wc1, bestScoreUv);
-    //gl_FragColor = texture2D(lowResOc1, vUv);
+    //gl_FragColor = screenBlend(texture2D(highResScreen, vUv), texture2D(wc1, bestScoreUv));
+    //gl_FragColor = texture2D(highResScreen, vUv) * texture2D(wc1, bestScoreUv);
+    gl_FragColor = texture2D(wc1, bestScoreUv);
+    //gl_FragColor = texture2D(lowResScreen, vUv);
 
   }
 `
