@@ -16,7 +16,7 @@ const fragmentShader = `
 
   vec4 applyGaussianKernel(sampler2D inputTexture, vec2 uv) {
     vec2 texelSize = 1.0 / vec2(textureSize(inputTexture, 0));
-    mat3 gaussianKernel = mat3(
+    mat3 kernel = mat3(
       1.0, 2.0, 1.0,
       2.0, 4.0, 2.0,
       1.0, 2.0, 1.0
@@ -26,14 +26,48 @@ const fragmentShader = `
         for (int j = -1; j <= 1; j++) {
             vec2 offset = vec2(float(i), float(j)) * texelSize;
             vec4 sampled = texture(inputTexture, uv + offset);
-            result += sampled * gaussianKernel[i + 2][j + 2];
+            result += sampled * kernel[i + 2][j + 2];
         }
     }
     return result;
-}
+  }
+
+  vec4 applyEdgeDetectionKernel(sampler2D inputTexture, vec2 uv) {
+    vec2 texelSize = 1.0 / vec2(textureSize(inputTexture, 0));
+    mat3 kernel = mat3(
+      -1.0, -1.0, -1.0,
+      -1.0,  8.0, -1.0,
+      -1.0, -1.0, -1.0
+  );
+    vec4 result = vec4(0.0);
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            vec2 offset = vec2(float(i), float(j)) * texelSize;
+            vec4 sampled = texture(inputTexture, uv + offset);
+            result += sampled * kernel[i + 2][j + 2];
+        }
+    }
+    return result;
+  }
+
+  vec3 hsvToRgb(vec3 hsv) {
+    vec3 rgb = clamp(abs(mod(hsv.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+    return hsv.z * mix(vec3(1.0), rgb, hsv.y);
+  }
+
+  vec4 getEdgeDirection(sampler2D inputTexture, vec2 uv) {
+    vec2 texelSize = 1.0 / vec2(textureSize(inputTexture, 0));
+    float gradientX = texture2D(inputTexture, vec2(uv.x+texelSize.x,uv.y)).x - texture2D(inputTexture, vec2(uv.x-texelSize.x,uv.y)).x;
+    float gradientY = texture2D(inputTexture, vec2(uv.x,uv.y+texelSize.y)).y - texture2D(inputTexture, vec2(uv.x,uv.y-texelSize.y)).y;
+    float angle = atan(gradientY, gradientX);
+    vec4 color = vec4(hsvToRgb(vec3(angle/6.28, 1.0, 1.0)), 1.0);
+    return color;
+  }
 
   void main() {
-    vec4 color = applyGaussianKernel(initialScene, vUv);
+    //vec4 color = applyGaussianKernel(initialScene, vUv);
+    //vec4 color = applyEdgeDetectionKernel(initialScene, vUv);
+    vec4 color = getEdgeDirection(initialScene, vUv);
     gl_FragColor = color; //texture2D(initialScene, vUv);
   }
 `
