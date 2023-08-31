@@ -3,7 +3,7 @@
 import { CameraShake, PerspectiveCamera, useTexture } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
-import { Mesh, MeshBasicMaterial, Object3D, Matrix4, InstancedMesh, PlaneGeometry, Vector3 } from 'three'
+import { Mesh, MeshBasicMaterial, Object3D, Matrix4, InstancedMesh, PlaneGeometry, Vector3, Camera } from 'three'
 import { randFloat } from 'three/src/math/MathUtils.js';
 
 type MeshWithStandardMaterial = Mesh<THREE.PlaneGeometry, MeshBasicMaterial>;

@@ -25,11 +25,11 @@ const vertexShaderSwells = `
   }
   
   void main() {
-    vUv = uv;
+    vUv = vec2(fract(uv.x*1024./1024.), uv.y);
     vIntensity = max(texture2D(swellIntensity, vUv).r, 0.05);
     vec3 fresnelLight = getFresnelIntensity()*vec3(0.2,0.5,0.8);
-    float modulationFactor = 0.17 + vIntensity*1.5;
-    vSwell_color = texture2D(colorGradient, vec2(0.15+0.3*getFresnelIntensity()+0.8*vIntensity, 0.5)).rgb;
+    float modulationFactor = 0.17 + vIntensity*0.5;
+    vSwell_color = texture2D(colorGradient, vec2(0.15+0.3*getFresnelIntensity()+1.*vIntensity, 0.5)).rgb;
     modulationFactor = vIntensity < 0.07 ? 0.2 : modulationFactor;
     vec3 newPosition = position + normal * modulationFactor;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
@@ -42,7 +42,7 @@ const fragmentShaderSwells = `
   varying vec2 vUv;
 
   void main() {
-    gl_FragColor = vec4(vSwell_color, 1.0);
+    gl_FragColor = vec4(vSwell_color, 1.);
   }
 `
 
@@ -51,7 +51,7 @@ const vertexShaderLand = `
   varying vec3 fresnelLight;
 
   float getRimLight() {
-    float power = 7.0;
+    float power = 6.0;
     vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
     vec3 transformedNormal = normalize(normalMatrix * normal);
     return smoothstep(0.2,0.5,pow(1.0 + dot(viewDirection, transformedNormal), power));
@@ -128,6 +128,8 @@ export function Scene() {
       vid.play()
       const videoTexture = new VideoTexture(vid)
       videoTexture.format = RedFormat
+      videoTexture.minFilter = NearestFilter
+      videoTexture.magFilter = NearestFilter
       if (globeRef && globeRef.current && globeRef.current.material) {
         shaderData.uniforms.swellIntensity.value = videoTexture
         setVideoLoaded(true)
@@ -141,18 +143,18 @@ export function Scene() {
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={15.0} />
-      <OrbitControls enableZoom={false} enableDamping={true} dampingFactor={0.01} autoRotate={true} autoRotateSpeed={-1} />
+      <OrbitControls enableZoom={false} enableDamping={true} dampingFactor={0.02} autoRotate={true} autoRotateSpeed={-1} />
       <mesh ref={globeRef} visible={videoLoaded}>
-        <sphereGeometry args={[1.1, 512, 512]} />
+        <sphereGeometry args={[1.8, 1024, 512]} />
         <shaderMaterial  {...shaderData} side={FrontSide} />
       </mesh>
       <mesh ref={landRef} onPointerOver={() => set(true)} onPointerOut={() => set(false)}>
-        <sphereGeometry args={[1.305, 64, 64]} />
+        <sphereGeometry args={[2.01, 64, 64]} />
         <shaderMaterial  {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>
-      <Sparkles color={0xffffff} count={100} speed={0.2} size={5} scale={6} />
-      <Sparkles color={0xffffff} count={50} speed={0.4} size={10} scale={3.5} rotation={[Math.PI/4,Math.PI/4,0]} />
-      <Sparkles color={0xffffff} count={100} speed={0.5} size={3} scale={4} rotation={[Math.PI/4,0,0]} />
+      <Sparkles color={0xffffff} count={100} speed={0.2} size={12} scale={15} />
+      <Sparkles color={0xffffff} count={50} speed={0.4} size={17} scale={4.5} rotation={[Math.PI/4,Math.PI/4,0]} />
+      <Sparkles color={0xffffff} count={100} speed={0.5} size={8} scale={6} rotation={[Math.PI/3,0,0]} />
       {/* <PostProcess /> */}
     </>
   );
