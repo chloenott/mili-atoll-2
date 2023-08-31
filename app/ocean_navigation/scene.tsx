@@ -1,6 +1,6 @@
 'use client'
 
-import { DeviceOrientationControls, OrbitControls, PerspectiveCamera, Sparkles, Torus, useTexture } from '@react-three/drei';
+import { DeviceOrientationControls, OrbitControls, PerspectiveCamera, Sparkles, Torus, useTexture, MeshTransmissionMaterial, PresentationControls, useCursor } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber'
 import { Bloom, Depth, DepthOfField, EffectComposer } from '@react-three/postprocessing';
 import { Orbit } from 'next/font/google';
@@ -17,19 +17,19 @@ const vertexShaderSwells = `
   varying float vIntensity;
   varying vec3 vSwell_color;
 
-  float getFresnelIntensity() {
-    float power = 10.0;
+  float getAntiFresnelIntensity() {
+    float power = 3.0;
     vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
     vec3 transformedNormal = normalize(normalMatrix * normal);
-    return pow(1.0 + dot(viewDirection, transformedNormal), power);
+    return pow(1.0 + min(0.0,dot(viewDirection, transformedNormal)), power);
   }
   
   void main() {
     vUv = uv;
     vIntensity = max(texture2D(swellIntensity, vUv).r, 0.05);
-    vec3 fresnelLight = getFresnelIntensity()*vec3(0.2,0.5,0.8);
-    vSwell_color = 10.*fresnelLight + texture2D(colorGradient, vec2(-0.05+1.1*vIntensity, 0.5)).rgb;
-    float modulationFactor = 0.17 + vIntensity*0.3;
+    vec3 fresnelLight = getAntiFresnelIntensity()*vec3(0.2,0.5,0.8);
+    float modulationFactor = 0.17 + vIntensity*1.5;
+    vSwell_color = texture2D(colorGradient, vec2(0.15+0.3*getAntiFresnelIntensity()+0.8*vIntensity, 0.5)).rgb;
     modulationFactor = vIntensity < 0.07 ? 0.2 : modulationFactor;
     vec3 newPosition = position + normal * modulationFactor;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
@@ -42,7 +42,7 @@ const fragmentShaderSwells = `
   varying vec2 vUv;
 
   void main() {
-    gl_FragColor = vec4(vSwell_color, vIntensity);
+    gl_FragColor = vec4(vSwell_color, 1.0);
   }
 `
 
@@ -50,8 +50,15 @@ const vertexShaderLand = `
   varying vec2 vUv;
   varying vec3 fresnelLight;
 
+  float getAntiFresnelIntensity() {
+    float power = 5.0;
+    vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+    vec3 transformedNormal = normalize(normalMatrix * normal);
+    return pow(1.0 + dot(viewDirection, transformedNormal), power);
+  }
+
   float getFresnelIntensity() {
-    float power = 2.0;
+    float power = 1.0;
     vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
     vec3 transformedNormal = normalize(normalMatrix * normal);
     return pow(1.0 + dot(viewDirection, transformedNormal), power);
@@ -59,7 +66,7 @@ const vertexShaderLand = `
 
   void main() {
     vUv = uv;
-    fresnelLight = getFresnelIntensity()*vec3(0.2,0.5,0.8);
+    fresnelLight = (-1.*getFresnelIntensity())*vec3(0.2,0.5,0.8);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `
@@ -71,14 +78,16 @@ const fragmentShaderLand = `
   varying vec3 fresnelLight;
 
   void main() {
-    float intensity = texture2D(blackMarble, vUv).r;
+    float intensity = 0.1+0.9*texture2D(blackMarble, vUv).r;
     vec3 black_marble_color = texture2D(colorGradient, vec2(intensity, 0.5)).rgb;
-    vec3 total_color = 2.*fresnelLight + black_marble_color;
-    gl_FragColor = vec4(total_color, intensity > 0.02 ? 1. : intensity);
+    vec3 total_color = intensity > 0.3 ? black_marble_color : -1.*fresnelLight + black_marble_color;
+    gl_FragColor = vec4(total_color, smoothstep(0.12, 0.13, intensity));
   }
 `
 
 export function Scene() {
+  const [hovered, set] = useState(false)
+  useCursor(hovered, 'grab', 'auto', document.body)
   const globeRef = useRef<MeshWithStandardMaterial>(null)
   const landRef = useRef<MeshWithStandardMaterial>(null)
   const [videoLoaded, setVideoLoaded] = useState(false)
@@ -107,13 +116,6 @@ export function Scene() {
     vertexShader: vertexShaderLand,
   }), [blackMarble, colorGradient])
 
-  useFrame((state, delta) => {
-    if (globeRef && globeRef.current && globeRef.current.rotation && landRef && landRef.current && landRef.current.rotation) {
-      globeRef.current.rotation.y += delta*0.1
-      landRef.current.rotation.y += delta*0.1
-    }
-  })
-
   useEffect(() => {
     const vid = document.createElement('video')
     vid.src = '/videos/sample.mov'
@@ -121,7 +123,7 @@ export function Scene() {
     vid.loop = true
     vid.muted = true
     vid.playsInline = true
-    vid.playbackRate = 1.0
+    vid.playbackRate = 0.75
     vid.onloadeddata = () => {
       vid.play()
       const videoTexture = new VideoTexture(vid)
@@ -139,19 +141,19 @@ export function Scene() {
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={15.0} />
-      <OrbitControls enableZoom={false} />
+      <OrbitControls enableZoom={false} enableDamping={true} dampingFactor={0.01} autoRotate={true} autoRotateSpeed={-1} />
       <mesh ref={globeRef} visible={videoLoaded}>
-        <sphereGeometry args={[1, 256, 256]} />
+        <sphereGeometry args={[1.1, 512, 512]} />
         <shaderMaterial  {...shaderData} side={FrontSide} />
       </mesh>
-      <mesh ref={landRef}>
-        <sphereGeometry args={[1.21, 128, 128]} />
+      <mesh ref={landRef} onPointerOver={() => set(true)} onPointerOut={() => set(false)}>
+        <sphereGeometry args={[1.305, 64, 64]} />
         <shaderMaterial  {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>
-      {/* <Sparkles color={0xbbbbff} count={100} speed={0.2} size={5} scale={6} />
-      <Sparkles color={0xbbccff} count={50} speed={0.4} size={10} scale={3.5} rotation={[Math.PI/4,Math.PI/4,0]} />
-      <Sparkles color={0x00ffbb} count={20} speed={0.5} size={20} scale={3} rotation={[Math.PI/4,0,0]} /> */}
-      <PostProcess />
+      <Sparkles color={0xffffff} count={100} speed={0.2} size={5} scale={6} />
+      <Sparkles color={0xffffff} count={50} speed={0.4} size={10} scale={3.5} rotation={[Math.PI/4,Math.PI/4,0]} />
+      <Sparkles color={0xffffff} count={100} speed={0.5} size={3} scale={4} rotation={[Math.PI/4,0,0]} />
+      {/* <PostProcess /> */}
     </>
   );
 }

@@ -9,13 +9,18 @@ import { randFloat } from 'three/src/math/MathUtils.js';
 type MeshWithStandardMaterial = Mesh<THREE.PlaneGeometry, MeshBasicMaterial>;
 
 export function Scene() {
+  const largeMapYOffset = 3;
   const imageScale = 80;
   const numberOfBirds = 500;
-  const birdsGroup = new Object3D();
+  const birdsGroupRef = useRef<Object3D>(new Object3D());
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const cameraRef = useRef<MeshWithStandardMaterial>(null)
   const cameraPositionTarget = useRef<THREE.Vector3>(new Vector3(0,0,5))
+  const opacityTarget = useRef(1);
+  const birdsPositionTarget = useRef<THREE.Vector3>(new Vector3(0,0,0))
+  const cameraHeightOffset = useRef(0)
   const satelliteImagesRef = useRef<THREE.Group>(null)
+  const satelliteLargeMapRef = useRef<THREE.Mesh>(null)
   const scene = useThree((state) => state.scene);
   const satelliteTextures = useTexture([
     '/images/satellite-1-watercolor.webp',
@@ -24,8 +29,11 @@ export function Scene() {
     '/images/satellite-4-watercolor.webp',
     '/images/satellite-5-watercolor.webp',
   ])
+  const satelliteLargeMap = useTexture('/images/satellite-large-map.webp')
   const birdTexture = useTexture('/images/bird.png')
   const aspectRatio = satelliteTextures && satelliteTextures[0] ? satelliteTextures[0].image.width / satelliteTextures[0].image.height : 1;
+  const aspectRatioLarge = satelliteLargeMap ? satelliteLargeMap.image.width / satelliteLargeMap.image.height : 1;
+  const currentCursorPosition = useRef({clientX: 0, clientY: 0})
 
   useEffect(() => {
     const matrix = new Matrix4();
@@ -40,25 +48,47 @@ export function Scene() {
       mesh.setMatrixAt(i+numberOfBirds-2, matrix);
     }
     mesh.rotateZ(-Math.PI/2);
+    const birdsGroup = new Object3D();
     birdsGroup.add(mesh);
     birdsGroup.rotateZ(0);
+    birdsGroupRef.current = birdsGroup;
     scene.add(birdsGroup);
 
     const handleMouseMove = (e: { clientX: number; clientY: number; }) => {
       const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
       const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+      currentCursorPosition.current = {clientX: e.clientX, clientY: e.clientY}
       const camera = cameraRef.current;
       if (camera) {
-        cameraPositionTarget.current = new Vector3(mouseY * 0.9, -mouseX * 0.9, 5+(-mouseY)*0.5);
+        cameraPositionTarget.current = cameraHeightOffset.current == 0 ? 
+                                          new Vector3(mouseY*0.9, -mouseX*0.9, 5+(-mouseY)*0.5+cameraHeightOffset.current)
+                                          : new Vector3(20+mouseY*100, -mouseX*100, cameraHeightOffset.current)
         camera.rotation.y = -mouseY * 0.02;
         camera.rotation.x = -mouseX * 0.02;
       }
     };
 
+    const handleWindowClick = () => {
+      const camera = cameraRef.current;
+      if (camera) {
+        setCurrentImageIndex(1)
+        cameraHeightOffset.current = cameraHeightOffset.current == 0 ? 20 : 0;
+        opacityTarget.current = cameraHeightOffset.current == 0 ? 1 : 0;
+        birdsPositionTarget.current = cameraHeightOffset.current == 0 ? new Vector3(0,0,0) : new Vector3(-100,0,0);
+        handleMouseMove(currentCursorPosition.current)
+      }
+      if (satelliteImagesRef.current && satelliteLargeMapRef.current) {
+        satelliteImagesRef.current.position.x = 0;
+        satelliteLargeMapRef.current.position.x = largeMapYOffset;
+      }
+    }
+
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('click', handleWindowClick);
     return () => {
       scene.remove(birdsGroup)
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('click', handleWindowClick);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [birdTexture])
@@ -66,8 +96,9 @@ export function Scene() {
   useEffect(() => {
     const imageChangeTimeout = setTimeout(() => {
       setCurrentImageIndex((currentImageIndex + 1) % satelliteTextures.length)
-      if (satelliteImagesRef.current) {
+      if (satelliteImagesRef.current && satelliteLargeMapRef.current) {
         satelliteImagesRef.current.position.x = 0;
+        satelliteLargeMapRef.current.position.x = largeMapYOffset;
       }
     }, 5000)
     return () => {
@@ -76,42 +107,52 @@ export function Scene() {
   })
 
   useFrame((state, delta) => {
-    if (satelliteImagesRef && satelliteImagesRef.current && satelliteImagesRef.current.position) {
+    if (cameraHeightOffset.current == 0 && satelliteImagesRef && satelliteImagesRef.current && satelliteImagesRef.current.position && satelliteLargeMapRef && satelliteLargeMapRef.current && satelliteLargeMapRef.current.position) {
       satelliteImagesRef.current.position.x -= delta*1
+      satelliteLargeMapRef.current.position.x -= delta*1
     }
-    birdsGroup.position.z = 0.02*Math.sin(state.clock.elapsedTime/2);
+    birdsGroupRef.current.position.lerp(birdsPositionTarget.current, delta*5);
     if (cameraRef.current) {
-      cameraRef.current.position.lerp(cameraPositionTarget.current, delta/5);
+      cameraRef.current.position.lerp(cameraPositionTarget.current, delta*2);
     }
+    satelliteImagesRef.current?.children.forEach((child) => {
+      if (child instanceof Mesh) {
+        child.material.opacity = child.material.opacity - (child.material.opacity-opacityTarget.current)*delta*10
+      }
+    })
   })
 
   return (
     <>
       <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 5]} fov={120} near={0.001} rotation={[0,0,-Math.PI/2]} />
+      <mesh ref={satelliteLargeMapRef} position={[largeMapYOffset, -10, -10.5]} rotation={[0,0,-Math.PI/2]}>
+        <planeGeometry args={[imageScale*aspectRatioLarge*3, imageScale*3]} />
+        <meshBasicMaterial map={satelliteLargeMap} />
+      </mesh>
       <group ref={satelliteImagesRef} position={[0, 0, -10]} rotation={[0,0,-Math.PI/2]}>
         <mesh visible={currentImageIndex == 0 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
-          <meshBasicMaterial map={satelliteTextures[0]} />
+          <meshBasicMaterial map={satelliteTextures[0]} transparent={true} />
         </mesh>
         <mesh visible={currentImageIndex == 1 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
-          <meshBasicMaterial map={satelliteTextures[1]} />
+          <meshBasicMaterial map={satelliteTextures[1]} transparent={true} />
         </mesh>
         <mesh visible={currentImageIndex == 2 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
-          <meshBasicMaterial map={satelliteTextures[2]} />
+          <meshBasicMaterial map={satelliteTextures[2]} transparent={true} />
         </mesh>
         <mesh visible={currentImageIndex == 3 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
-          <meshBasicMaterial map={satelliteTextures[3]} />
+          <meshBasicMaterial map={satelliteTextures[3]} transparent={true} />
         </mesh>
         <mesh visible={currentImageIndex == 4 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
-          <meshBasicMaterial map={satelliteTextures[4]} />
+          <meshBasicMaterial map={satelliteTextures[4]} transparent={true} />
         </mesh>
         <mesh visible={currentImageIndex == 5 ? true : false}>
           <planeGeometry args={[imageScale*aspectRatio, imageScale]} />
-          <meshBasicMaterial map={satelliteTextures[5]} />
+          <meshBasicMaterial map={satelliteTextures[5]} transparent={true} />
         </mesh>
       </group>
     </>

@@ -1,4 +1,4 @@
-Incomplete.
+# Incomplete
 
 Version 1 was a technical disaster overrun by experimental spaghetti, mysterious rerenderings, and more garbage collection than the python last script I made. But we will not give up. We will move on. We will surive.
 
@@ -10,13 +10,13 @@ Structure
 
 Title page
 
-- [ ] Canvas. 5 satellite texture pairs (watercolor, photo). Camera slow pan, replace texture after interval. 500 birds with shared watercolor, photo texture pairs. Dream reality.
+- [x] Canvas. 5 satellite texture pairs (watercolor, photo). Camera slow pan, replace texture after interval. 500 birds with shared watercolor, ~~photo texture pairs~~. Dream reality.
 - [ ] Button to go to navigation page.
 
-Ocean page
+Ocean page(s)
 
 - [ ] Lost. 1st person. Crosshatch waves. Distant marker. Birds to shore.
-- [ ] Wind waves, significant wave height video textures onto sphere. Single channel with shader color gradient. Black marble composite, wc/p pair.
+- [X] Wind waves, significant wave height video textures onto sphere. Single channel with shader color gradient. Black marble composite, ~~wc/p pair~~.
 - [ ] Regional waves, wave spectra video. Refraction, reflection diagram.
 
 Videos page
