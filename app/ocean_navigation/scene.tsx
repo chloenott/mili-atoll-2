@@ -1,6 +1,6 @@
 'use client'
 
-import { DeviceOrientationControls, OrbitControls, PerspectiveCamera, Sparkles, Torus, useTexture, MeshTransmissionMaterial, PresentationControls, useCursor } from '@react-three/drei';
+import { DeviceOrientationControls, OrbitControls, PerspectiveCamera, Sparkles, Torus, useTexture, MeshTransmissionMaterial, PresentationControls, useCursor, Text3D, Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber'
 import { Bloom, Depth, DepthOfField, EffectComposer } from '@react-three/postprocessing';
 import { Orbit } from 'next/font/google';
@@ -17,7 +17,7 @@ const vertexShaderSwells = `
   varying float vIntensity;
   varying vec3 vSwell_color;
 
-  float getAntiFresnelIntensity() {
+  float getFresnelIntensity() {
     float power = 3.0;
     vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
     vec3 transformedNormal = normalize(normalMatrix * normal);
@@ -27,9 +27,9 @@ const vertexShaderSwells = `
   void main() {
     vUv = uv;
     vIntensity = max(texture2D(swellIntensity, vUv).r, 0.05);
-    vec3 fresnelLight = getAntiFresnelIntensity()*vec3(0.2,0.5,0.8);
+    vec3 fresnelLight = getFresnelIntensity()*vec3(0.2,0.5,0.8);
     float modulationFactor = 0.17 + vIntensity*1.5;
-    vSwell_color = texture2D(colorGradient, vec2(0.15+0.3*getAntiFresnelIntensity()+0.8*vIntensity, 0.5)).rgb;
+    vSwell_color = texture2D(colorGradient, vec2(0.15+0.3*getFresnelIntensity()+0.8*vIntensity, 0.5)).rgb;
     modulationFactor = vIntensity < 0.07 ? 0.2 : modulationFactor;
     vec3 newPosition = position + normal * modulationFactor;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
@@ -50,11 +50,11 @@ const vertexShaderLand = `
   varying vec2 vUv;
   varying vec3 fresnelLight;
 
-  float getAntiFresnelIntensity() {
-    float power = 5.0;
+  float getRimLight() {
+    float power = 7.0;
     vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
     vec3 transformedNormal = normalize(normalMatrix * normal);
-    return pow(1.0 + dot(viewDirection, transformedNormal), power);
+    return smoothstep(0.2,0.5,pow(1.0 + dot(viewDirection, transformedNormal), power));
   }
 
   float getFresnelIntensity() {
@@ -66,7 +66,7 @@ const vertexShaderLand = `
 
   void main() {
     vUv = uv;
-    fresnelLight = (-1.*getFresnelIntensity())*vec3(0.2,0.5,0.8);
+    fresnelLight = (-1.*getFresnelIntensity()-getRimLight())*vec3(0.2,0.5,0.8);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `

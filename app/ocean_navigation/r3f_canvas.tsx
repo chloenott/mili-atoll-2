@@ -3,7 +3,7 @@
 import { Canvas } from '@react-three/fiber'
 import { Scene } from './scene'
 import { NoToneMapping, WebGLRenderer } from 'three'
-import { Stats } from '@react-three/drei'
+import { Scroll, ScrollControls, Stats } from '@react-three/drei'
 
 export default function R3fCanvas() {
   return (
