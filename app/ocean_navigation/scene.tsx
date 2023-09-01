@@ -1,12 +1,8 @@
 'use client'
 
-import { DeviceOrientationControls, OrbitControls, PerspectiveCamera, Sparkles, Torus, useTexture, MeshTransmissionMaterial, PresentationControls, useCursor, Text3D, Text } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber'
-import { Bloom, Depth, DepthOfField, EffectComposer } from '@react-three/postprocessing';
-import { Orbit } from 'next/font/google';
+import { OrbitControls, PerspectiveCamera, Sparkles, useTexture, useCursor } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { VideoTexture, Mesh, MeshStandardMaterial, Texture, LuminanceFormat, RedFormat, NearestFilter, NearestMipMapNearestFilter, NearestMipMapLinearFilter, LinearFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, DoubleSide, FrontSide, AmbientLight, Fog } from 'three'
-import { PostProcess } from './post_process';
+import { VideoTexture, Mesh, MeshStandardMaterial, Texture, RedFormat, NearestFilter, NearestMipmapLinearFilter, FrontSide } from 'three'
 
 type MeshWithStandardMaterial = Mesh<THREE.SphereGeometry, MeshStandardMaterial>;
 
@@ -58,7 +54,7 @@ const vertexShaderLand = `
   }
 
   float getFresnelIntensity() {
-    float power = 1.0;
+    float power = 1.;
     vec3 viewDirection = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
     vec3 transformedNormal = normalize(normalMatrix * normal);
     return pow(1.0 + dot(viewDirection, transformedNormal), power);
@@ -66,7 +62,7 @@ const vertexShaderLand = `
 
   void main() {
     vUv = uv;
-    fresnelLight = (-1.*getFresnelIntensity()-getRimLight())*vec3(0.2,0.5,0.8);
+    fresnelLight = (-1.5*getFresnelIntensity()-getRimLight())*vec3(0.2,0.5,0.8);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `
@@ -80,7 +76,7 @@ const fragmentShaderLand = `
   void main() {
     float intensity = 0.1+0.9*texture2D(blackMarble, vUv).r;
     vec3 black_marble_color = texture2D(colorGradient, vec2(intensity, 0.5)).rgb;
-    vec3 total_color = intensity > 0.3 ? black_marble_color : -1.*fresnelLight + black_marble_color;
+    vec3 total_color = -1.*fresnelLight + black_marble_color;
     gl_FragColor = vec4(total_color, smoothstep(0.12, 0.13, intensity));
   }
 `
@@ -146,15 +142,17 @@ export function Scene() {
       <OrbitControls enableZoom={false} enableDamping={true} dampingFactor={0.02} autoRotate={true} autoRotateSpeed={-1} />
       <mesh ref={globeRef} visible={videoLoaded}>
         <sphereGeometry args={[1.8, 1024, 512]} />
-        <shaderMaterial  {...shaderData} side={FrontSide} />
+        <shaderMaterial {...shaderData} side={FrontSide} />
       </mesh>
-      <mesh ref={landRef} onPointerOver={() => set(true)} onPointerOut={() => set(false)}>
+      <mesh ref={landRef} onPointerOver={() => set(true)} onPointerOut={() => set(false)} visible={videoLoaded}>
         <sphereGeometry args={[2.01, 64, 64]} />
-        <shaderMaterial  {...landShaderData} transparent={true} side={FrontSide} />
+        <shaderMaterial {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>
-      <Sparkles color={0xffffff} count={100} speed={0.2} size={12} scale={15} />
-      <Sparkles color={0xffffff} count={50} speed={0.4} size={17} scale={4.5} rotation={[Math.PI/4,Math.PI/4,0]} />
-      <Sparkles color={0xffffff} count={100} speed={0.5} size={8} scale={6} rotation={[Math.PI/3,0,0]} />
+      {/* <EasterlyText />
+      <NortherlyText /> */}
+      <Sparkles color={0xffffff} count={100} speed={0.2} size={12} scale={15} visible={videoLoaded} />
+      <Sparkles color={0xffffff} count={50} speed={0.4} size={17} scale={4.5} rotation={[Math.PI/4,Math.PI/4,0]} visible={videoLoaded} />
+      <Sparkles color={0xffffff} count={100} speed={0.5} size={8} scale={6} rotation={[Math.PI/3,0,0]} visible={videoLoaded} />
       {/* <PostProcess /> */}
     </>
   );

@@ -15,9 +15,9 @@ Title page
 
 Ocean page(s)
 
-- [ ] Lost. 1st person. Crosshatch waves. Distant marker. Birds to shore.
 - [X] Wind waves, significant wave height video textures onto sphere. Single channel with shader color gradient. Black marble composite, ~~wc/p pair~~.
 - [ ] Regional waves, wave spectra video. Refraction, reflection diagram.
+- [ ] Lost. 1st person. Crosshatch waves. Distant marker. Birds to shore.
 
 Videos page
 

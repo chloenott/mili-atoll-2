@@ -6,6 +6,8 @@ export default function Home() {
     <main>
       <h1>Home</h1>
       <Link href="/ocean_navigation">Go to Ocean Navigation</Link>
+      <br />
+      <Link href="/sea_surface">Go to Sea Surface</Link>
       <R3fCanvas />
     </main>
   )
