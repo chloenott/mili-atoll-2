@@ -16,14 +16,14 @@ const vertexShaderSea = `
 
   float uniformWaves(float direction, float amplitude, float numberOfWaves, float waveSpeed, float numberOfSuperimposedWaves, float planeLength) {
     vec2 rotatedUV = vec2(vUv.x*cos(direction)-vUv.y*sin(direction), vUv.x*sin(direction)+vUv.y*cos(direction));
-    float height = amplitude/numberOfSuperimposedWaves/20.*sin(2.*3.14159*(rotatedUV.y*numberOfWaves+u_time*waveSpeed/planeLength*numberOfWaves));
-    return height;
+    float intensity = amplitude/numberOfSuperimposedWaves/20.*sin(2.*3.14159*(rotatedUV.y*numberOfWaves+u_time*waveSpeed/planeLength*numberOfWaves));
+    return intensity;
   }
 
   void main() {
-    vUv = uv;
+    vUv = vec2(abs(uv.x-0.5), abs(uv.y-0.5));
     // 74 km/h (46 mph; 40 kn)	1,313 km (816 mi)	42 h	8.5 m (28 ft)	136 m (446 ft)	11.4 s, 11.9 m/s (39.1 ft/s)
-    float numberOfSuperimposedWaves = 1.;
+    float numberOfSuperimposedWaves = 51.;
     float direction = 0.0;
     float amplitude = 8.5/2.; // m, trough to crest divided by 2
     float planeLength = 1000.; // m
@@ -34,8 +34,8 @@ const vertexShaderSea = `
       direction += 2.0*3.1415/numberOfSuperimposedWaves;
       vIntensity += uniformWaves(direction, amplitude, numberOfWaves, waveSpeed, numberOfSuperimposedWaves, planeLength);
     }
-    vIntensity += 0.5;
     vec3 newPosition = position + 20.*numberOfSuperimposedWaves*normal*vIntensity; // 20*numberOfSuperimposedWaves to undo the 1/20/numberofSuperimposedWaves scaling factor
+    vIntensity += 0.5;
     color = texture2D(colorGradient, vec2(0.1+0.4*vIntensity, 0.5)).rgb;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   }
