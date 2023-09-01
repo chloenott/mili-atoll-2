@@ -82,8 +82,6 @@ const fragmentShaderLand = `
 `
 
 export function Scene() {
-  const [hovered, set] = useState(false)
-  useCursor(hovered, 'grab', 'auto', document.body)
   const globeRef = useRef<MeshWithStandardMaterial>(null)
   const landRef = useRef<MeshWithStandardMaterial>(null)
   const [videoLoaded, setVideoLoaded] = useState(false)
@@ -144,7 +142,7 @@ export function Scene() {
         <sphereGeometry args={[1.8, 1024, 512]} />
         <shaderMaterial {...shaderData} side={FrontSide} />
       </mesh>
-      <mesh ref={landRef} onPointerOver={() => set(true)} onPointerOut={() => set(false)} visible={videoLoaded}>
+      <mesh ref={landRef} visible={videoLoaded}>
         <sphereGeometry args={[2.01, 64, 64]} />
         <shaderMaterial {...landShaderData} transparent={true} side={FrontSide} />
       </mesh>

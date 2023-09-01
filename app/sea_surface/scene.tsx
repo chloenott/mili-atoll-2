@@ -14,27 +14,29 @@ const vertexShaderSea = `
   uniform sampler2D colorGradient;
   varying vec3 color;
 
-  float uniformWaves(float direction, float amplitude, float numberOfWaves, float waveSpeed) {
+  float uniformWaves(float direction, float amplitude, float numberOfWaves, float waveSpeed, float numberOfSuperimposedWaves, float planeLength) {
     vec2 rotatedUV = vec2(vUv.x*cos(direction)-vUv.y*sin(direction), vUv.x*sin(direction)+vUv.y*cos(direction));
-    float height = amplitude*sin(rotatedUV.y*numberOfWaves+u_time*waveSpeed);
+    float height = amplitude/numberOfSuperimposedWaves/20.*sin(2.*3.14159*(rotatedUV.y*numberOfWaves+u_time*waveSpeed/planeLength*numberOfWaves));
     return height;
   }
-  
+
   void main() {
     vUv = uv;
-    float numberOfSuperimposedWaves = 5.;
+    // 74 km/h (46 mph; 40 kn)	1,313 km (816 mi)	42 h	8.5 m (28 ft)	136 m (446 ft)	11.4 s, 11.9 m/s (39.1 ft/s)
+    float numberOfSuperimposedWaves = 1.;
     float direction = 0.0;
-    float amplitude = 1.0/numberOfSuperimposedWaves;
-    float numberOfWaves = 50.;
-    float waveSpeed = 5.;
+    float amplitude = 8.5/2.; // m, trough to crest divided by 2
+    float planeLength = 1000.; // m
+    float numberOfWaves = planeLength/136.; // waves per 1km
+    float waveSpeed = 11.9; // m/s
     vIntensity = 0.;
     for (float i = 0.; i < numberOfSuperimposedWaves; i++) {
       direction += 2.0*3.1415/numberOfSuperimposedWaves;
-      vIntensity += uniformWaves(direction, amplitude/(i+1.)+0.02, numberOfWaves, waveSpeed/numberOfWaves*50.);
+      vIntensity += uniformWaves(direction, amplitude, numberOfWaves, waveSpeed, numberOfSuperimposedWaves, planeLength);
     }
     vIntensity += 0.5;
-    vec3 newPosition = position + normal*vIntensity;
-    color = texture2D(colorGradient, vec2(0.2+0.4*vIntensity, 0.5)).rgb;
+    vec3 newPosition = position + 20.*numberOfSuperimposedWaves*normal*vIntensity; // 20*numberOfSuperimposedWaves to undo the 1/20/numberofSuperimposedWaves scaling factor
+    color = texture2D(colorGradient, vec2(0.1+0.4*vIntensity, 0.5)).rgb;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   }
 `
@@ -50,8 +52,6 @@ const fragmentShaderSea = `
 `
 
 export function Scene() {
-  const [hovered, set] = useState(false)
-  useCursor(hovered, 'grab', 'auto', document.body)
   const seaRef = useRef<Mesh>(null)
   const colorGradient = useTexture('/images/color_gradient.png')
 
@@ -70,11 +70,11 @@ export function Scene() {
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 3, 1.5]} fov={90.0} up={[0, 0, 1]} />
-      <OrbitControls enableZoom={false} autoRotate={false} />
-      <mesh ref={seaRef} onPointerOver={() => set(true)} onPointerOut={() => set(false)}>
-        <planeGeometry args={[100, 100, 128, 128]} />
-        <shaderMaterial {...shaderData} />
+      <PerspectiveCamera makeDefault position={[0, 3, 250]} fov={90.0} up={[0, 0, 1]} />
+      <OrbitControls enableZoom={false} autoRotate={false} enableDamping={false} />
+      <mesh ref={seaRef}>
+        <planeGeometry args={[1000, 1000, 256, 256]} />
+        <shaderMaterial {...shaderData} side={FrontSide} />
       </mesh>
     </>
   );
