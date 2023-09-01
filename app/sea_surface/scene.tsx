@@ -11,6 +11,8 @@ const vertexShaderSea = `
   varying vec2 vUv;
   varying float vIntensity;
   uniform float u_time;
+  uniform sampler2D colorGradient;
+  varying vec3 color;
 
   float uniformWaves(float direction, float amplitude, float numberOfWaves, float waveSpeed) {
     vec2 rotatedUV = vec2(vUv.x*cos(direction)-vUv.y*sin(direction), vUv.x*sin(direction)+vUv.y*cos(direction));
@@ -20,7 +22,7 @@ const vertexShaderSea = `
   
   void main() {
     vUv = uv;
-    float numberOfSuperimposedWaves = 10.;
+    float numberOfSuperimposedWaves = 5.;
     float direction = 0.0;
     float amplitude = 1.0/numberOfSuperimposedWaves;
     float numberOfWaves = 50.;
@@ -28,19 +30,21 @@ const vertexShaderSea = `
     vIntensity = 0.;
     for (float i = 0.; i < numberOfSuperimposedWaves; i++) {
       direction += 2.0*3.1415/numberOfSuperimposedWaves;
-      vIntensity += uniformWaves(direction, amplitude/(i+1.), numberOfWaves, waveSpeed/numberOfWaves*10.);
+      vIntensity += uniformWaves(direction, amplitude/(i+1.)+0.02, numberOfWaves, waveSpeed/numberOfWaves*50.);
     }
     vIntensity += 0.5;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec3 newPosition = position + normal*vIntensity;
+    color = texture2D(colorGradient, vec2(0.2+0.4*vIntensity, 0.5)).rgb;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   }
 `
 
 const fragmentShaderSea = `
   varying vec2 vUv;
   varying float vIntensity;
+  varying vec3 color;
 
   void main() {
-    vec3 color = vIntensity*vec3(1.,1.,1.);
     gl_FragColor = vec4(color, 1.);
   }
 `
@@ -66,7 +70,7 @@ export function Scene() {
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 3, 10]} fov={90.0} up={[0, 0, 1]} />
+      <PerspectiveCamera makeDefault position={[0, 3, 1.5]} fov={90.0} up={[0, 0, 1]} />
       <OrbitControls enableZoom={false} autoRotate={false} />
       <mesh ref={seaRef} onPointerOver={() => set(true)} onPointerOut={() => set(false)}>
         <planeGeometry args={[100, 100, 128, 128]} />
