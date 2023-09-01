@@ -14,16 +14,20 @@ const vertexShaderSea = `
   uniform sampler2D colorGradient;
   varying vec3 color;
 
-  float uniformWaves(float direction, float amplitude, float numberOfWaves, float waveSpeed, float numberOfSuperimposedWaves, float planeLength) {
+  float uniformWaves(float direction, float amplitude, float numberOfWaves, float waveSpeed, float numberOfSuperimposedWaves, float planeLength, float phase) {
     vec2 rotatedUV = vec2(vUv.x*cos(direction)-vUv.y*sin(direction), vUv.x*sin(direction)+vUv.y*cos(direction));
-    float intensity = amplitude/numberOfSuperimposedWaves/20.*sin(2.*3.14159*(rotatedUV.y*numberOfWaves+u_time*waveSpeed/planeLength*numberOfWaves));
+    float intensity = amplitude/numberOfSuperimposedWaves/20.*sin(2.*3.14159*(phase+rotatedUV.y*numberOfWaves+u_time*waveSpeed/planeLength*numberOfWaves));
     return intensity;
   }
 
+  float randomNumber(float x, float y) {
+    return fract(sin(dot(vec2(x,y),vec2(12.9898,78.233)))*43758.5453);
+  }
+
   void main() {
-    vUv = vec2(abs(uv.x-0.5), abs(uv.y-0.5));
+    vUv = vec2(uv.x-0.5, uv.y-0.5);
     // 74 km/h (46 mph; 40 kn)	1,313 km (816 mi)	42 h	8.5 m (28 ft)	136 m (446 ft)	11.4 s, 11.9 m/s (39.1 ft/s)
-    float numberOfSuperimposedWaves = 51.;
+    float numberOfSuperimposedWaves = 15.;
     float direction = 0.0;
     float amplitude = 8.5/2.; // m, trough to crest divided by 2
     float planeLength = 1000.; // m
@@ -31,8 +35,8 @@ const vertexShaderSea = `
     float waveSpeed = 11.9; // m/s
     vIntensity = 0.;
     for (float i = 0.; i < numberOfSuperimposedWaves; i++) {
-      direction += 2.0*3.1415/numberOfSuperimposedWaves;
-      vIntensity += uniformWaves(direction, amplitude, numberOfWaves, waveSpeed, numberOfSuperimposedWaves, planeLength);
+      direction += 1.0*3.1415/numberOfSuperimposedWaves;
+      vIntensity += uniformWaves(direction, amplitude, numberOfWaves, waveSpeed, numberOfSuperimposedWaves, planeLength, randomNumber(i, direction));
     }
     vec3 newPosition = position + 20.*numberOfSuperimposedWaves*normal*vIntensity; // 20*numberOfSuperimposedWaves to undo the 1/20/numberofSuperimposedWaves scaling factor
     vIntensity += 0.5;
