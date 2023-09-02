@@ -1,9 +1,9 @@
 'use client'
 
-import { OrbitControls, PerspectiveCamera, Sparkles, useTexture, useCursor, FirstPersonControls } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Sparkles, useTexture, useCursor, FirstPersonControls, CameraControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { VideoTexture, Mesh, MeshStandardMaterial, Texture, RedFormat, NearestFilter, NearestMipmapLinearFilter, FrontSide } from 'three'
+import { VideoTexture, Mesh, MeshStandardMaterial, Texture, RedFormat, NearestFilter, NearestMipmapLinearFilter, FrontSide, Vector2 } from 'three'
 
 type MeshWithStandardMaterial = Mesh<THREE.SphereGeometry, MeshStandardMaterial>;
 
@@ -30,17 +30,16 @@ const vertexShaderSea = `
     float numberOfSuperimposedWaves = 15.;
     float direction = 0.0;
     float amplitude = 8.5/2.; // m, trough to crest divided by 2
-    float planeLength = 1000.; // m
+    float planeLength = 2000.; // m
     float numberOfWaves = planeLength/136.; // waves per 1km
     float waveSpeed = 11.9; // m/s
     vIntensity = 0.;
     for (float i = 0.; i < numberOfSuperimposedWaves; i++) {
-      direction += 1.0*3.1415/numberOfSuperimposedWaves;
-      vIntensity += uniformWaves(direction, amplitude, numberOfWaves, waveSpeed, numberOfSuperimposedWaves, planeLength, randomNumber(i, direction));
+      direction += 2.0*3.1415/numberOfSuperimposedWaves;
+      vIntensity += uniformWaves(direction, i/numberOfSuperimposedWaves*amplitude/2., numberOfWaves, waveSpeed, numberOfSuperimposedWaves, planeLength, randomNumber(i, direction));
     }
     vec3 newPosition = position + 20.*numberOfSuperimposedWaves*normal*vIntensity; // 20*numberOfSuperimposedWaves to undo the 1/20/numberofSuperimposedWaves scaling factor
-    vIntensity += 0.5;
-    color = texture2D(colorGradient, vec2(0.1+0.4*vIntensity, 0.5)).rgb;
+    color = texture2D(colorGradient, vec2(0.3+3.*vIntensity, 0.5)).rgb;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   }
 `
@@ -68,16 +67,36 @@ export function Scene() {
     fragmentShader: fragmentShaderSea,
   }), [colorGradient])
 
+  const calculateWaveIntensity = (x: number, y: number, time: number) => {
+    const amplitude = 8.5/2.; // m, trough to crest divided by 2
+    const planeLength = 2000.; // m
+    const numberOfWaves = planeLength/136.; // waves per 1km
+    const waveSpeed = 11.9; // m/s
+    const numberOfSuperimposedWaves = 15.;
+    const vUv = new Vector2(x-0.5, y-0.5);
+    let intensity = 0;
+    for (let i = 0; i < numberOfSuperimposedWaves; i++) {
+      const direction = 2.0*3.1415/numberOfSuperimposedWaves*i;
+      const rotatedUV = new Vector2(vUv.x*Math.cos(direction)-vUv.y*Math.sin(direction), vUv.x*Math.sin(direction)+vUv.y*Math.cos(direction));
+      const random_inputs = new Vector2(i, direction);
+      const random = Math.sin(random_inputs.dot(new Vector2(12.9898,78.233)))*43758.5453
+      const phase = random - Math.floor(random);
+      intensity += amplitude/numberOfSuperimposedWaves/20*Math.sin(2.*3.14159*(phase+rotatedUV.y*numberOfWaves+time*waveSpeed/planeLength*numberOfWaves));
+    }
+    return 20.*numberOfSuperimposedWaves*intensity;
+  }
+
   useFrame((state) => {
     shaderData.uniforms.u_time.value = state.clock.elapsedTime;
+    state.camera.position.z = 20+calculateWaveIntensity(0.5, 0.5, state.clock.elapsedTime);
   })
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 3, 250]} fov={90.0} up={[0, 0, 1]} />
-      <OrbitControls enableZoom={false} autoRotate={false} enableDamping={false} />
+      <PerspectiveCamera makeDefault position={[0, 3, 30]} fov={90.0} up={[0, 0, 1]} />
+      <CameraControls />
       <mesh ref={seaRef}>
-        <planeGeometry args={[1000, 1000, 256, 256]} />
+        <planeGeometry args={[2000, 2000, 256, 256]} />
         <shaderMaterial {...shaderData} side={FrontSide} />
       </mesh>
     </>
