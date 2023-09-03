@@ -3,7 +3,7 @@
 import { OrbitControls, PerspectiveCamera, Sparkles, useTexture, useCursor, FirstPersonControls, CameraControls, PivotControls, ArcballControls, Sphere } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { VideoTexture, Mesh, MeshStandardMaterial, Texture, RedFormat, NearestFilter, NearestMipmapLinearFilter, FrontSide, Vector2, Vector3 } from 'three'
+import { VideoTexture, Mesh, MeshStandardMaterial, Texture, RedFormat, NearestFilter, NearestMipmapLinearFilter, FrontSide, Vector2, Vector3, SphereGeometry } from 'three'
 
 type MeshWithStandardMaterial = Mesh<THREE.SphereGeometry, MeshStandardMaterial>;
 
@@ -59,8 +59,9 @@ export function Scene() {
   const seaRef = useRef<Mesh>(null)
   const colorGradient = useTexture('/images/color_gradient.png')
   const [cameraTarget, setCameraTarget] = useState(new Vector3(0,0,0))
-  const [cameraPosition, setCameraPosition] = useState(new Vector3(0,5,0))
+  const [cameraAngle, setCameraAngle] = useState(Math.PI/2)
   const planeLength = 2000.; // m
+  const controlsRef = useRef<any>()
 
   const shaderData = useMemo(() => ({
     uniforms: {
@@ -92,16 +93,20 @@ export function Scene() {
 
   useFrame((state) => {
     shaderData.uniforms.u_time.value = state.clock.elapsedTime;
-    console.log(state.camera.position)
-    //setCameraPosition(new Vector3(0,10,15+calculateWaveIntensity(0.5-state.camera.position.x/planeLength/2, 0.5-state.camera.position.y/planeLength/2, state.clock.elapsedTime)));
-    setCameraTarget(new Vector3(0,0,1+calculateWaveIntensity(0.5, 0.5, state.clock.elapsedTime)));
+    const heightAboveWave = 5;
+    setCameraTarget(new Vector3(0,0,heightAboveWave+calculateWaveIntensity(0.5, 0.5, state.clock.elapsedTime)));
+    let cameraPositionTemp = new Vector3();
+    state.camera.getWorldPosition(cameraPositionTemp)
+    const wavePositionAtCamera = new Vector3(cameraPositionTemp.x,cameraPositionTemp.y,calculateWaveIntensity(0.5+cameraPositionTemp.x/planeLength/2, 0.5+cameraPositionTemp.y/planeLength/2, state.clock.elapsedTime));
+    const horizontalDistanceCameraToTarget = Math.sqrt(Math.pow(wavePositionAtCamera.x,2)+Math.pow(wavePositionAtCamera.y,2));
+    const angle = Math.PI/2 - Math.atan2(heightAboveWave+wavePositionAtCamera.z-cameraTarget.z, horizontalDistanceCameraToTarget);
+    setCameraAngle(angle);
   })
 
   return (
     <>
-      <PerspectiveCamera makeDefault fov={90.0} up={[0, 0, 1]} position={cameraPosition} />
-      <OrbitControls target={cameraTarget} />
-      <Sphere position={cameraTarget} />
+      <PerspectiveCamera makeDefault fov={70.0} up={[0, 0, 1]} near={0.1} />
+      <OrbitControls target={cameraTarget} ref={controlsRef} maxPolarAngle={cameraAngle} minPolarAngle={cameraAngle} minDistance={5} maxDistance={5} />
       <mesh ref={seaRef} position={[0,0,0]}>
         <planeGeometry args={[2000, 2000, 256, 256]} />
         <shaderMaterial {...shaderData} side={FrontSide} />
